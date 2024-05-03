@@ -1,8 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Inject, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Inject, ParseIntPipe, Query } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
-import { ClientProxy } from '@nestjs/microservices';
+import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { ORDER_SERVICE } from 'src/config';
+import { firstValueFrom } from 'rxjs';
+import { PaginationDTO } from 'src/common';
+import { StatusDTO } from './dto/change-state-order.dto';
 
 @Controller('orders')
 export class OrdersController {
@@ -14,17 +16,22 @@ export class OrdersController {
   }
 
   @Get()
-  findAll() {
-    return this.ordersClient.send({ cmd: 'findAllOrder' }, {});
+  findAll(@Query() paginationDTO: PaginationDTO) {
+    return this.ordersClient.send({ cmd: 'findAllOrder' }, { paginationDTO });
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.ordersClient.send({ cmd: 'findOneOrder' }, { id });
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    try {
+      const orden = await firstValueFrom(this.ordersClient.send({ cmd: 'findOneOrder' }, id));
+      return orden;
+    } catch (error) {
+      throw new RpcException(error);
+    }
   }
 
   @Patch(':id')
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.ordersClient.send({ cmd: 'changeOrderStatus' }, { id, ...updateOrderDto });
+  async changeStatus(@Param('id', ParseIntPipe) id: number, @Body() statusDTO: StatusDTO) {
+    return this.ordersClient.send({ cmd: 'changeOrderStatus' }, { id, ...statusDTO });
   }
 }

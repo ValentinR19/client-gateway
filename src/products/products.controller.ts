@@ -2,28 +2,28 @@ import { Body, Controller, Delete, Get, Inject, Param, ParseIntPipe, Patch, Post
 import { ClientProxy, RpcException } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
 import { PaginationDTO } from 'src/common/pagination.dto';
-import { PRODUCT_SERVICE } from 'src/config';
+import { NATS_SERVICE, PRODUCT_SERVICE } from 'src/config';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('products')
 export class ProductsController {
-  constructor(@Inject(PRODUCT_SERVICE) private readonly productsClient: ClientProxy) {}
+  constructor(@Inject(NATS_SERVICE) private readonly client: ClientProxy) {}
 
   @Post()
   async createProduct(@Body() createProductDto: CreateProductDto) {
-    return this.productsClient.send({ cmd: 'createProductMessage' }, createProductDto);
+    return this.client.send({ cmd: 'createProductMessage' }, createProductDto);
   }
 
   @Get()
-  async findAllProducts(@Query() paginationDTO: PaginationDTO) {
-    return this.productsClient.send({ cmd: 'findAllProductsMessage' }, paginationDTO);
+  async findAllProducts(@Query() paginationDTO: any) {
+    return this.client.send({ cmd: 'findAllProductsMessage' }, paginationDTO);
   }
 
   @Get(':id')
   async findProductById(@Param('id', ParseIntPipe) id: number) {
     try {
-      const producto = await firstValueFrom(this.productsClient.send({ cmd: 'findOneProductMessage' }, { id }));
+      const producto = await firstValueFrom(this.client.send({ cmd: 'findOneProductMessage' }, { id }));
       return producto;
     } catch (error) {
       throw new RpcException(error);
@@ -32,11 +32,11 @@ export class ProductsController {
 
   @Patch(':id')
   async updateProduct(@Body() updateProductDto: UpdateProductDto, @Param('id', ParseIntPipe) id: number, @Body() body: any) {
-    return this.productsClient.send({ cmd: 'updateProductMessage' }, { id, ...updateProductDto });
+    return this.client.send({ cmd: 'updateProductMessage' }, { id, ...updateProductDto });
   }
 
   @Delete(':id')
   async delete(@Param('id', ParseIntPipe) id: number) {
-    return this.productsClient.send({ cmd: 'deleteProductMessage' }, { id });
+    return this.client.send({ cmd: 'deleteProductMessage' }, { id });
   }
 }

@@ -9,7 +9,7 @@ export class PaymentsController {
 
   @Post('create-payment-session')
   async createPaymentSession(@Body() createPaymentSessionDTO: CreatePaymentSessionDTO) {
-    return this.client.send('create.payment.session',  createPaymentSessionDTO );
+    return this.client.send('create.payment.session', createPaymentSessionDTO);
   }
 
   @Get('success')
